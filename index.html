@@ -168,6 +168,7 @@
   .empty { padding: 44px 8px; text-align: center; color: var(--sub); }
   .message { padding: 56px 8px; text-align: center; color: var(--sub); }
   .message strong { display: block; color: var(--ink); font-size: 17px; margin-bottom: 6px; }
+  .message .diagnosis { display: block; margin-top: 14px; font-size: 12px; color: var(--sub); overflow-wrap: anywhere; }
   .message button { margin-top: 16px; padding: 9px 18px; background: var(--ink); color: var(--paper); border: 0; font-weight: 700; cursor: pointer; }
 
   /* ---------- 起動アニメーション ---------- */
@@ -287,7 +288,7 @@
 
 <script>
 // ---- ここを書き換える ------------------------------------------------
-const LIFF_ID = '2012159085-Vv6wldgk';           // 例: 1234567890-AbCdEfGh(本番用のLIFF ID)
+const LIFF_ID = '2012159085-Vv6wIdgk';           // 例: 1234567890-AbCdEfGh(本番用のLIFF ID)
 const API_URL = 'https://script.google.com/macros/s/AKfycbw7UqwiYnt_VmQudKsL4wfqemQFvieQ16R5355R5WWqP7aDmM-vcBm4M3-Rj2sb_HoO/exec';           // 例: https://script.google.com/macros/s/xxxx/exec
 // ----------------------------------------------------------------------
 
@@ -503,13 +504,20 @@ function start(quotes) {
   intro.ready();
 }
 
-function showMessage(title, detail, retry) {
+function showMessage(title, detail, retry, diagnosis) {
   const box = $('message');
   box.textContent = '';
   const strong = document.createElement('strong');
   strong.textContent = title;
   box.appendChild(strong);
   if (detail) box.appendChild(document.createTextNode(detail));
+  if (diagnosis) {
+    // 原因を調べるための情報(どこで止まったか)
+    const d = document.createElement('small');
+    d.className = 'diagnosis';
+    d.textContent = diagnosis;
+    box.appendChild(d);
+  }
   if (retry) {
     const b = document.createElement('button');
     b.className = 'btn';
@@ -591,13 +599,28 @@ const ERROR_TEXT = {
   not_configured: ['ページの準備がまだ終わっていません', '管理役に知らせてください。'],
 };
 
+/** どこで止まったかを添えたエラー */
+function stepError(step, err) {
+  const e = new Error(step + ': ' + ((err && err.message) || String(err)));
+  e.step = step;
+  return e;
+}
+
 function loadFromApi(idToken) {
   return fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'quotes', idToken: idToken }) })
-    .then((res) => res.json())
+    .catch((err) => { throw stepError('APIへの通信', err); })
+    .then((res) => res.text().then((body) => {
+      try {
+        return JSON.parse(body);
+      } catch (e) {
+        const html = /^\s*</.test(body) ? '。JSONではなくHTMLのページが返っています' : '';
+        throw stepError('APIの応答', new Error('HTTP ' + res.status + html));
+      }
+    }))
     .then((data) => {
       if (data.ok) { start(data.quotes || []); return; }
       const t = ERROR_TEXT[data.error] || ['読み込みに失敗しました', ''];
-      showMessage(t[0], t[1], data.error !== 'not_member');
+      showMessage(t[0], t[1], data.error !== 'not_member', 'APIの判定: ' + data.error);
     });
 }
 
@@ -613,10 +636,11 @@ function main() {
     return;
   }
   if (typeof liff === 'undefined') {
-    showMessage('読み込みに失敗しました', 'LINEのアプリから開き直してください。', true);
+    showMessage('読み込みに失敗しました', 'LINEのアプリから開き直してください。', true, 'LIFFの読み込み: LINEの部品を読み込めませんでした');
     return;
   }
   liff.init({ liffId: LIFF_ID })
+    .catch((err) => { throw stepError('LIFFの初期化', err); })
     .then(() => {
       if (!liff.isLoggedIn()) { liff.login(); return; }
       const token = liff.getIDToken();
@@ -628,7 +652,7 @@ function main() {
     })
     .catch((err) => {
       console.error(err);
-      showMessage('読み込みに失敗しました', '通信の状態を確かめて、開き直してください。', true);
+      showMessage('読み込みに失敗しました', '通信の状態を確かめて、開き直してください。', true, err.message);
     });
 }
 
