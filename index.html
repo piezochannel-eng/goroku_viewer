@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>語録</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@900&text=%E8%AA%9E%E9%8C%B2&display=swap">
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root {
+    --paper: #edebe6;
+    --surface: #ffffff;
+    --ink: #000000;
+    --sub: #55524c;
+    --red: #d2232a;
+    --yellow: #f2b51c;
+    --blue: #1d4f9c;
+    --rule: 3px;
+    --title: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+    --geo: "Jost", "Futura", "Century Gothic", "Hiragino Sans", sans-serif;
+    --body: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", Meiryo, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #000000;
+      --surface: #1b1b1b;
+      --ink: #edebe6;
+      --sub: #a9a59c;
+      --red: #e8423f;
+      --yellow: #f5c234;
+      --blue: #4a7fd6;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  body.intro-on { overflow: hidden; }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+  [hidden] { display: none !important; }
+
+  /* ---------- 見出し ---------- */
+  header {
+    position: relative;
+    height: 168px;
+    margin: 0 -16px;
+    overflow: hidden;
+    border-bottom: 6px solid var(--ink);
+  }
+  .h-circle, .h-square, .h-tri { position: absolute; transition: transform 0.7s cubic-bezier(0.2, 1.4, 0.4, 1); }
+  .h-circle { width: 210px; height: 210px; border-radius: 50%; background: var(--red); right: -58px; top: -70px; }
+  .h-square { width: 64px; height: 64px; background: var(--blue); right: 140px; top: 22px; }
+  .h-tri {
+    width: 0; height: 0; right: 22px; top: 104px;
+    border-left: 34px solid transparent; border-right: 34px solid transparent;
+    border-bottom: 58px solid var(--yellow);
+  }
+  body:not(.revealed) .h-circle { transform: scale(0.85); }
+  body:not(.revealed) .h-square { transform: rotate(-45deg) scale(0.6); }
+  body:not(.revealed) .h-tri { transform: translateY(-24px); }
+  h1 {
+    position: absolute; left: 16px; bottom: 6px; margin: 0;
+    font-family: var(--title); font-weight: 900; font-size: 84px; line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .total { position: absolute; left: 192px; bottom: 14px; font-family: var(--geo); font-size: 14px; color: var(--sub); }
+  .total b { font-weight: 700; font-size: 26px; color: var(--ink); margin-right: 2px; }
+  .demo-note { font-size: 12px; color: var(--sub); padding: 8px 0 0; }
+
+  /* ---------- 検索・絞り込み ---------- */
+  .tools { position: sticky; top: 0; z-index: 5; background: var(--paper); padding: 12px 0; border-bottom: var(--rule) solid var(--ink); }
+  .search {
+    width: 100%; font-size: 16px;
+    background: var(--surface); border: var(--rule) solid var(--ink); border-radius: 0;
+    padding: 9px 12px; outline: none; -webkit-appearance: none; appearance: none;
+  }
+  .search:focus { box-shadow: 4px 4px 0 var(--yellow); }
+  .row { display: flex; gap: 8px; margin-top: 8px; }
+  select {
+    flex: 1 1 0; min-width: 0; font-size: 14px;
+    background: var(--surface); border: var(--rule) solid var(--ink); border-radius: 0;
+    padding: 6px 26px 6px 10px; -webkit-appearance: none; appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(-45deg, transparent 50%, var(--ink) 50%);
+    background-position: calc(100% - 15px) 55%, calc(100% - 9px) 55%;
+    background-size: 6px 6px; background-repeat: no-repeat;
+    text-overflow: ellipsis;
+  }
+  .status { display: flex; justify-content: space-between; align-items: baseline; margin: 12px 0 8px; font-size: 13px; color: var(--sub); }
+  .status button { background: none; border: 0; padding: 0; color: var(--blue); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+  /* ---------- ランダム ---------- */
+  .random {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 11px; margin: 0 0 12px;
+    background: var(--ink); color: var(--paper); border: 0; border-radius: 0;
+    font-weight: 700; letter-spacing: 0.06em; cursor: pointer;
+  }
+  .random::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--yellow); }
+  .random:disabled { opacity: 0.35; cursor: default; }
+  .pick { position: relative; background: var(--yellow); border: var(--rule) solid var(--ink); padding: 14px 16px 12px; margin: 0 0 16px; color: #000; }
+  .pick-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .pick-head .acts { display: flex; gap: 14px; }
+  .pick-head button { background: none; border: 0; padding: 0; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; color: #000; }
+  .pick .card { background: transparent; border: 0; padding: 0 0 0 0; margin: 0; color: #000; }
+  .pick .card::before, .pick .glyph { display: none; }
+  .pick .quote { font-size: 20px; font-weight: 700; }
+  .pick .date, .pick .reg { color: #000; }
+  .pick.drop { animation: drop 0.45s cubic-bezier(0.2, 1.3, 0.4, 1); }
+  @keyframes drop { from { transform: translateY(-14px) rotate(-1.5deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  /* ---------- 一覧 ---------- */
+  ol.list { list-style: none; margin: 0; padding: 0; }
+  .card {
+    position: relative;
+    background: var(--surface);
+    border: var(--rule) solid var(--ink);
+    margin: 0 0 12px;
+    padding: 14px 44px 12px 26px;
+  }
+  .card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 10px; background: var(--c, transparent); border-right: var(--rule) solid var(--ink); }
+  .card[data-color="none"]::before { display: none; }
+  .card[data-color="none"] { padding-left: 16px; }
+  [data-color="red"] { --c: var(--red); --on-c: #fff; }
+  [data-color="blue"] { --c: var(--blue); --on-c: #fff; }
+  [data-color="yellow"] { --c: var(--yellow); --on-c: #000; }
+  [data-color="black"] { --c: var(--ink); --on-c: var(--paper); }
+  .glyph { position: absolute; right: 12px; top: 14px; width: 18px; height: 18px; }
+  .glyph[data-shape="circle"] { border-radius: 50%; background: var(--c); }
+  .glyph[data-shape="square"] { background: var(--c); }
+  .glyph[data-shape="triangle"] { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 18px solid var(--c); }
+  .glyph[data-shape="none"] { display: none; }
+  .quote {
+    margin: 0; font-size: 17px; font-weight: 500; line-height: 1.8;
+    white-space: pre-wrap; overflow-wrap: anywhere; word-break: auto-phrase; text-wrap: pretty;
+  }
+  .quote::before { content: "「"; color: var(--red); font-weight: 700; margin-left: -0.55em; }
+  .quote::after { content: "」"; color: var(--red); font-weight: 700; }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 10px; font-size: 12.5px; color: var(--sub); }
+  .speaker {
+    background: var(--c, var(--ink)); color: var(--on-c, var(--paper));
+    border: 0; border-radius: 0; padding: 2px 8px; font-weight: 700; font-size: 12.5px; cursor: pointer;
+  }
+  .speaker:disabled { cursor: default; }
+  .date { font-family: var(--geo); font-weight: 500; font-size: 13px; letter-spacing: 0.02em; }
+  mark { background: var(--yellow); color: #000; padding: 0 1px; }
+  .pick mark { background: #fff; }
+
+  .more {
+    display: block; width: 100%; margin: 4px 0 28px; padding: 11px;
+    background: transparent; border: var(--rule) solid var(--ink); border-radius: 0;
+    font-weight: 700; cursor: pointer;
+  }
+  .empty { padding: 44px 8px; text-align: center; color: var(--sub); }
+  .message { padding: 56px 8px; text-align: center; color: var(--sub); }
+  .message strong { display: block; color: var(--ink); font-size: 17px; margin-bottom: 6px; }
+  .message button { margin-top: 16px; padding: 9px 18px; background: var(--ink); color: var(--paper); border: 0; font-weight: 700; cursor: pointer; }
+
+  /* ---------- 起動アニメーション ---------- */
+  #intro {
+    position: fixed; inset: 0; z-index: 50;
+    background: var(--paper);
+    display: grid; place-items: center;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .stage { position: relative; width: 300px; height: 300px; }
+  .i-bar { position: absolute; left: -40vw; right: -40vw; top: 196px; height: 14px; background: var(--ink); transform: scaleX(0); transform-origin: left; }
+  .i-circle { position: absolute; left: 14px; top: 20px; width: 170px; height: 170px; border-radius: 50%; background: var(--red); transform: scale(0); }
+  .i-square { position: absolute; left: 160px; top: 96px; width: 100px; height: 100px; background: var(--blue); transform: translateX(60vw) rotate(180deg); }
+  .i-tri {
+    position: absolute; left: 196px; top: 8px; width: 0; height: 0;
+    border-left: 46px solid transparent; border-right: 46px solid transparent; border-bottom: 80px solid var(--yellow);
+    transform: translateY(-60vh);
+  }
+  .i-title {
+    position: absolute; left: 10px; top: 214px;
+    font-family: var(--title); font-weight: 900; font-size: 76px; line-height: 1; letter-spacing: -0.04em;
+    clip-path: inset(100% 0 0 0);
+  }
+  .i-sub { position: absolute; left: 170px; top: 258px; font-size: 13px; font-weight: 700; opacity: 0; }
+  .i-wait { position: absolute; left: 170px; top: 232px; display: flex; gap: 8px; opacity: 0; }
+  .i-wait span { width: 12px; height: 12px; background: var(--ink); }
+  .i-wait span:nth-child(1) { border-radius: 50%; background: var(--red); }
+  .i-wait span:nth-child(2) { background: var(--blue); }
+  .i-wait span:nth-child(3) { width: 0; height: 0; background: none; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid var(--yellow); }
+
+  #intro.play .i-bar { animation: bar 0.45s cubic-bezier(0.7, 0, 0.2, 1) forwards; }
+  #intro.play .i-circle { animation: pop 0.6s 0.2s cubic-bezier(0.2, 1.5, 0.4, 1) forwards; }
+  #intro.play .i-square { animation: slide 0.6s 0.38s cubic-bezier(0.2, 1, 0.3, 1) forwards; }
+  #intro.play .i-tri { animation: fall 0.55s 0.55s cubic-bezier(0.3, 1.4, 0.5, 1) forwards; }
+  #intro.play .i-title { animation: rise 0.45s 0.85s cubic-bezier(0.2, 0.9, 0.3, 1) forwards; }
+  #intro.play .i-sub { animation: fade 0.3s 1.15s forwards; }
+  #intro.waiting .i-wait { opacity: 1; }
+  #intro.waiting .i-sub { visibility: hidden; }
+  #intro.waiting .i-wait span { animation: blink 0.9s infinite; }
+  #intro.waiting .i-wait span:nth-child(2) { animation-delay: 0.15s; }
+  #intro.waiting .i-wait span:nth-child(3) { animation-delay: 0.3s; }
+  #intro.leave { animation: lift 0.65s cubic-bezier(0.7, 0, 0.3, 1) forwards; }
+  #intro.leave .i-wait { opacity: 0; }
+
+  @keyframes bar { to { transform: scaleX(1); } }
+  @keyframes pop { to { transform: scale(1); } }
+  @keyframes slide { to { transform: none; } }
+  @keyframes fall { to { transform: none; } }
+  @keyframes rise { to { clip-path: inset(0 0 0 0); } }
+  @keyframes fade { to { opacity: 1; } }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
+  @keyframes lift { to { transform: translateY(-100%); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="intro" aria-hidden="true">
+  <div class="stage">
+    <div class="i-bar"></div>
+    <div class="i-circle"></div>
+    <div class="i-square"></div>
+    <div class="i-tri"></div>
+    <div class="i-title">語録</div>
+    <div class="i-sub">名言と迷言の保管庫</div>
+    <div class="i-wait"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header>
+    <span class="h-circle" aria-hidden="true"></span>
+    <span class="h-square" aria-hidden="true"></span>
+    <span class="h-tri" aria-hidden="true"></span>
+    <h1>語録</h1>
+    <span class="total" id="total"></span>
+  </header>
+  <div class="demo-note" id="demoNote" hidden>お試し表示です。並んでいるのは架空のデータです</div>
+
+  <div id="app" hidden>
+    <div class="tools">
+      <input class="search" id="q" type="search" placeholder="言葉や発話者で検索" autocomplete="off" enterkeyhint="search" aria-label="検索">
+      <div class="row">
+        <select id="speaker" aria-label="発話者"></select>
+        <select id="month" aria-label="期間"></select>
+        <select id="sort" aria-label="並び順">
+          <option value="new">新しい順</option>
+          <option value="old">古い順</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="status">
+      <span id="count"></span>
+      <span><button id="clear" type="button" hidden>条件をクリア</button></span>
+    </div>
+
+    <button class="random" id="random" type="button">ランダムに1つ選ぶ</button>
+    <div class="pick" id="pick" hidden>
+      <div class="pick-head">
+        <span>ランダムに選んだ語録</span>
+        <span class="acts"><button id="again" type="button">もう1回</button><button id="close" type="button">閉じる</button></span>
+      </div>
+      <div id="pickBody"></div>
+    </div>
+
+    <ol class="list" id="list"></ol>
+    <div class="empty" id="empty" hidden>条件に合う語録はありません。条件をクリアすると全件に戻ります</div>
+    <button class="more" id="more" type="button" hidden></button>
+  </div>
+
+  <div class="message" id="message"><strong>読み込み中</strong></div>
+</div>
+
+<script>
+// ---- ここを書き換える ------------------------------------------------
+const LIFF_ID = '2012159083';           // 例: 1234567890-AbCdEfGh(本番用のLIFF ID)
+const API_URL = 'ここにAPIのURLを書く';           // 例: https://script.google.com/macros/s/xxxx/exec
+// ----------------------------------------------------------------------
+
+const PAGE_SIZE = 60;
+const state = { all: [], filtered: [], query: '', speaker: '', month: '', sort: 'new', shown: PAGE_SIZE, pickIndex: -1 };
+const $ = (id) => document.getElementById(id);
+
+/* ---------- 検索用の文字の正規化 ---------- */
+function toHiragana(s) {
+  return s.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+}
+function toKatakana(s) {
+  return s.replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60));
+}
+/** 全角半角・大文字小文字・ひらがなカタカナの違いをそろえる */
+function norm(s) {
+  return toHiragana(String(s).normalize('NFKC').toLowerCase());
+}
+function keywords(query) {
+  return query.split(/[\s　]+/).map((w) => w.trim()).filter(Boolean);
+}
+
+/* ---------- 絞り込み ---------- */
+function monthKey(t) {
+  if (!t) return '';
+  const d = new Date(t);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+function applyFilters() {
+  const words = keywords(state.query).map(norm);
+  let list = state.all.filter((item) => {
+    if (state.speaker && item.s !== state.speaker) return false;
+    if (state.month && monthKey(item.t) !== state.month) return false;
+    if (words.length === 0) return true;
+    const hay = item._n;
+    return words.every((w) => hay.indexOf(w) !== -1);
+  });
+  if (state.sort === 'old') list = list.slice().reverse();
+  state.filtered = list;
+}
+
+/* ---------- 表示 ---------- */
+function formatDate(t) {
+  if (!t) return '';
+  const d = new Date(t);
+  return d.getFullYear() + '.' + (d.getMonth() + 1) + '.' + d.getDate();
+}
+
+/** 本文を、検索語の部分に印を付けて組み立てる(HTMLとしては扱わない) */
+function highlighted(text, query) {
+  const frag = document.createDocumentFragment();
+  const words = keywords(query);
+  if (words.length === 0) { frag.appendChild(document.createTextNode(text)); return frag; }
+
+  const variants = [];
+  words.forEach((w) => {
+    [w, w.normalize('NFKC'), toHiragana(w), toKatakana(w)].forEach((v) => { if (v && variants.indexOf(v) === -1) variants.push(v); });
+  });
+  const pattern = new RegExp(variants.map((v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).sort((a, b) => b.length - a.length).join('|'), 'gi');
+
+  let last = 0;
+  text.replace(pattern, (m, offset) => {
+    if (offset > last) frag.appendChild(document.createTextNode(text.slice(last, offset)));
+    const mark = document.createElement('mark');
+    mark.textContent = m;
+    frag.appendChild(mark);
+    last = offset + m.length;
+    return m;
+  });
+  if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+  return frag;
+}
+
+const SPEAKER_STYLES = [];
+['red', 'blue', 'yellow', 'black'].forEach((color) => {
+  ['circle', 'square', 'triangle'].forEach((shape) => SPEAKER_STYLES.push({ color: color, shape: shape }));
+});
+/** 発話者名から、色と図形の組み合わせを1つ決める */
+function speakerStyle(name) {
+  if (!name) return { color: 'none', shape: 'none' };
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return SPEAKER_STYLES[h % SPEAKER_STYLES.length];
+}
+
+function card(item, tag) {
+  const el = document.createElement(tag || 'li');
+  el.className = 'card';
+  const style = speakerStyle(item.s);
+  el.dataset.color = style.color;
+  const glyph = document.createElement('span');
+  glyph.className = 'glyph';
+  glyph.dataset.shape = style.shape;
+  glyph.setAttribute('aria-hidden', 'true');
+  el.appendChild(glyph);
+
+  const q = document.createElement('p');
+  q.className = 'quote';
+  q.appendChild(highlighted(item.q, state.query));
+  el.appendChild(q);
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  if (item.s) {
+    const sp = document.createElement('button');
+    sp.type = 'button';
+    sp.className = 'speaker';
+    sp.dataset.color = style.color;
+    sp.appendChild(highlighted(item.s, state.query));
+    if (state.speaker === item.s) sp.disabled = true;
+    sp.addEventListener('click', () => { setSpeaker(item.s); });
+    meta.appendChild(sp);
+  }
+  if (item.t) {
+    const d = document.createElement('span');
+    d.className = 'date';
+    d.textContent = formatDate(item.t);
+    meta.appendChild(d);
+  }
+  if (item.r && item.r !== item.s) {
+    const r = document.createElement('span');
+    r.className = 'reg';
+    r.textContent = '登録 ' + item.r;
+    meta.appendChild(r);
+  }
+  el.appendChild(meta);
+  return el;
+}
+
+function render() {
+  applyFilters();
+  const list = $('list');
+  list.textContent = '';
+  const items = state.filtered.slice(0, state.shown);
+  items.forEach((item) => list.appendChild(card(item)));
+
+  const n = state.filtered.length;
+  const filtering = state.query || state.speaker || state.month;
+  $('count').textContent = filtering ? n + '件 見つかりました' : '';
+  $('clear').hidden = !filtering;
+  $('empty').hidden = n !== 0;
+  $('random').disabled = n === 0;
+
+  const rest = n - items.length;
+  $('more').hidden = rest <= 0;
+  $('more').textContent = 'もっと見る(残り' + rest + '件)';
+
+  renderPick();
+}
+
+function renderPick() {
+  const body = $('pickBody');
+  body.textContent = '';
+  const item = state.pickIndex >= 0 ? state.filtered[state.pickIndex] : null;
+  $('pick').hidden = !item;
+  if (item) body.appendChild(card(item, 'div'));
+}
+
+function pickRandom() {
+  const n = state.filtered.length;
+  if (n === 0) return;
+  let i = Math.floor(Math.random() * n);
+  if (n > 1 && i === state.pickIndex) i = (i + 1 + Math.floor(Math.random() * (n - 1))) % n;
+  state.pickIndex = i;
+  renderPick();
+  const panel = $('pick');
+  panel.classList.remove('drop');
+  void panel.offsetWidth; // アニメーションを最初からやり直す
+  panel.classList.add('drop');
+  $('pick').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function setSpeaker(name) {
+  state.speaker = name;
+  $('speaker').value = name;
+  state.shown = PAGE_SIZE;
+  state.pickIndex = -1;
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function buildSelectors() {
+  const counts = {};
+  state.all.forEach((item) => { if (item.s) counts[item.s] = (counts[item.s] || 0) + 1; });
+  const speakers = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b, 'ja'));
+  const sp = $('speaker');
+  sp.textContent = '';
+  sp.appendChild(new Option('発話者', ''));
+  speakers.forEach((s) => sp.appendChild(new Option(s + '(' + counts[s] + ')', s)));
+
+  const months = Array.from(new Set(state.all.map((item) => monthKey(item.t)).filter(Boolean))).sort().reverse();
+  const mo = $('month');
+  mo.textContent = '';
+  mo.appendChild(new Option('期間', ''));
+  months.forEach((m) => {
+    const [y, mm] = m.split('-');
+    mo.appendChild(new Option(y + '年' + Number(mm) + '月', m));
+  });
+}
+
+function start(quotes) {
+  state.all = quotes.map((item) => Object.assign({}, item, { _n: norm(item.q + '\n' + (item.s || '')) }));
+  const total = $('total');
+  total.textContent = '';
+  const num = document.createElement('b');
+  num.textContent = state.all.length;
+  total.appendChild(num);
+  total.appendChild(document.createTextNode('件'));
+  buildSelectors();
+  $('message').hidden = true;
+  $('app').hidden = false;
+  render();
+  intro.ready();
+}
+
+function showMessage(title, detail, retry) {
+  const box = $('message');
+  box.textContent = '';
+  const strong = document.createElement('strong');
+  strong.textContent = title;
+  box.appendChild(strong);
+  if (detail) box.appendChild(document.createTextNode(detail));
+  if (retry) {
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.type = 'button';
+    b.textContent = '読み込み直す';
+    b.addEventListener('click', () => location.reload());
+    box.appendChild(document.createElement('br'));
+    box.appendChild(b);
+  }
+  box.hidden = false;
+  $('app').hidden = true;
+  intro.ready();
+}
+
+/* ---------- 起動アニメーション ----------
+ * 図形が組み上がって「語録」が出るまでを最低1.4秒見せ、データの準備ができたら幕を上げる。
+ * データが遅いときは、組み上がった画面のまま図形が順に点滅して待つ。タップで早送りできる。
+ * 端末で「視差効果を減らす」が有効なら、アニメーションは出さない
+ */
+const intro = (function () {
+  const el = $('intro');
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let dataReady = false;
+  let minDone = false;
+  let finished = false;
+
+  function finish() {
+    if (finished || !dataReady || !minDone) return;
+    finished = true;
+    document.body.classList.add('revealed');
+    el.classList.add('leave');
+    setTimeout(() => { el.hidden = true; document.body.classList.remove('intro-on'); }, 700);
+  }
+
+  if (reduce) {
+    el.hidden = true;
+    document.body.classList.add('revealed');
+    finished = true;
+  } else {
+    document.body.classList.add('intro-on');
+    el.classList.add('play');
+    setTimeout(() => { minDone = true; el.classList.add('waiting'); finish(); }, 1400);
+    el.addEventListener('click', () => { minDone = true; finish(); });
+  }
+
+  return { ready: function () { dataReady = true; finish(); } };
+})();
+
+/* ---------- 操作 ---------- */
+let searchTimer = null;
+$('q').addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    state.query = e.target.value;
+    state.shown = PAGE_SIZE;
+    state.pickIndex = -1;
+    render();
+  }, 150);
+});
+$('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); });
+$('speaker').addEventListener('change', (e) => { setSpeaker(e.target.value); });
+$('month').addEventListener('change', (e) => { state.month = e.target.value; state.shown = PAGE_SIZE; state.pickIndex = -1; render(); });
+$('sort').addEventListener('change', (e) => { state.sort = e.target.value; state.shown = PAGE_SIZE; state.pickIndex = -1; render(); });
+$('more').addEventListener('click', () => { state.shown += PAGE_SIZE; render(); });
+$('random').addEventListener('click', pickRandom);
+$('again').addEventListener('click', pickRandom);
+$('close').addEventListener('click', () => { state.pickIndex = -1; renderPick(); });
+$('clear').addEventListener('click', () => {
+  state.query = ''; state.speaker = ''; state.month = ''; state.shown = PAGE_SIZE; state.pickIndex = -1;
+  $('q').value = ''; $('speaker').value = ''; $('month').value = '';
+  render();
+});
+
+/* ---------- 読み込み ---------- */
+const ERROR_TEXT = {
+  not_member: ['このページはグループのメンバーだけが見られます', '語録のグループに参加しているLINEアカウントで開いてください。'],
+  invalid_token: ['ログインの確認に失敗しました', '時間がたっている場合があります。開き直してください。'],
+  unavailable: ['LINE側で確認ができませんでした', '少し時間をおいて開き直してください。'],
+  not_configured: ['ページの準備がまだ終わっていません', '管理役に知らせてください。'],
+};
+
+function loadFromApi(idToken) {
+  return fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'quotes', idToken: idToken }) })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.ok) { start(data.quotes || []); return; }
+      const t = ERROR_TEXT[data.error] || ['読み込みに失敗しました', ''];
+      showMessage(t[0], t[1], data.error !== 'not_member');
+    });
+}
+
+function main() {
+  const params = new URLSearchParams(location.search);
+  if (params.has('demo')) {
+    $('demoNote').hidden = false;
+    start(demoQuotes());
+    return;
+  }
+  if (LIFF_ID.indexOf('ここに') === 0 || API_URL.indexOf('ここに') === 0) {
+    showMessage('ページの準備がまだ終わっていません', 'LIFF_ID と API_URL を書き込んでください。');
+    return;
+  }
+  if (typeof liff === 'undefined') {
+    showMessage('読み込みに失敗しました', 'LINEのアプリから開き直してください。', true);
+    return;
+  }
+  liff.init({ liffId: LIFF_ID })
+    .then(() => {
+      if (!liff.isLoggedIn()) { liff.login(); return; }
+      const token = liff.getIDToken();
+      if (!token) {
+        showMessage('ログインの確認に失敗しました', 'ミニアプリの設定で openid の権限が有効か、管理役に確認してください。');
+        return;
+      }
+      return loadFromApi(token);
+    })
+    .catch((err) => {
+      console.error(err);
+      showMessage('読み込みに失敗しました', '通信の状態を確かめて、開き直してください。', true);
+    });
+}
+
+/** お試し表示用の架空のデータ(?demo を付けて開いたときだけ使う) */
+function demoQuotes() {
+  const speakers = ['教授A', '教授B', '教授C', '教授D', '佐藤'];
+  const texts = [
+    '出血は勢いで止まる', '覚え方は自分で作ったほうが一生忘れない', 'この図だけ覚えておけば、あとは全部忘れてもいい',
+    '試験に出すとは言っていないが、出さないとも言っていない', '迷走神経は、名前のわりに迷っていない',
+    'ここは国試に出ます。たぶん。きっと。', '解剖は、見たことがあるかどうかが全て',
+    '教科書は重いほど信用できる', 'ここまでで質問ある人。…いないですね、では次',
+    '心臓は休まない。君たちは休んでいい', '延髄から出る神経は4つ。今日はそれだけ持って帰ってください',
+    'レポートは長さではなく、読む人の時間で評価します', '今日の話は来週も同じことを言います',
+    '分からないところが分かったなら、今日は成功です', '顔面神経は、顔の表情を全部背負っている',
+    '黒板の字が汚いのは、手が考えに追いついていないから', 'この写真、10年使っています',
+    '「なんとなく」で覚えると、本番で「なんとなく」間違えます', '休憩にしましょう。5分と言って10分です',
+    '昔はこれを手で描いていました', 'スライドの最後は、毎年少しずつ増えています',
+    '臨床に出たら、今日の話を思い出す日が必ず来ます', '質問は、その場でしたほうが得です',
+    'テストの範囲は、私の気分です。冗談です。半分は',
+  ];
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  return texts.map((q, i) => ({
+    t: now - i * 4.3 * day,
+    s: speakers[(i * 7) % speakers.length],
+    q: q,
+    r: i % 3 === 0 ? '鈴木' : (i % 3 === 1 ? '田中' : speakers[(i * 7) % speakers.length]),
+  }));
+}
+
+main();
+</script>
+</body>
+</html>
