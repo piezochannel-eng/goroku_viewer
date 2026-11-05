@@ -204,6 +204,20 @@
   }
   .chip i { width: 11px; height: 11px; background: var(--c); border: 2px solid var(--ink); border-radius: 50%; }
   .chip small { font-family: var(--geo); font-weight: 500; font-size: 12px; color: var(--sub); }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .chip[aria-pressed="true"] small { color: var(--paper); }
+  .chip[aria-pressed="true"] i { border-color: var(--paper); }
+  .group-info { margin: 14px 0 0; }
+  .gi-head { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+  .gi-head .ctag { margin: 0; }
+  .gi-count { font-size: 12.5px; color: var(--sub); }
+  .gi-close {
+    margin-left: auto; padding: 2px 10px; background: var(--surface); color: var(--ink);
+    border: 2px solid var(--ink); border-radius: 0; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  .gi-note { margin: 0 0 8px; font-size: 12px; color: var(--sub); }
+  .nb.cur { background: var(--ink); color: var(--paper); }
+  .nb.cur .nb-s { color: var(--paper); }
   .map-info { margin: 14px 0 0; }
   .ctag { display: inline-block; margin: 0 0 8px; padding: 1px 9px; background: var(--c); color: var(--on-c); border: 2px solid var(--ink); font-weight: 700; font-size: 12.5px; }
   .nb-title { margin: 16px 0 6px; font-size: 13px; font-weight: 700; }
@@ -349,6 +363,7 @@
       </div>
       <div class="chips" id="mapChips"></div>
       <div class="map-info" id="mapInfo" hidden></div>
+      <div class="group-info" id="groupInfo" hidden></div>
       <div class="map-foot" id="mapFoot"></div>
     </div>
   </div>
@@ -649,7 +664,7 @@ const mp = {
   canvas: null, ctx: null, w: 0, h: 0, dpr: 1,
   points: [], clusters: [], clusterById: new Map(), edges: [], quoteByText: new Map(),
   view: { cx: 0, cy: 0, scale: 1 }, fit: 1, fitted: false,
-  selected: -1, hover: -1, match: null, labels: [],
+  selected: -1, group: -1, hover: -1, match: null, labels: [],
   colors: null, font: '', drawQueued: false, tween: null,
 };
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
@@ -763,6 +778,32 @@ function convexHull(pts) {
   lower.pop();
   return lower.concat(upper);
 }
+/** メンバーのうち、中心(中央値)から遠い順に cut の割合だけ除いたもの。6点未満なら全員 */
+function coreMembers(members, cut) {
+  if (members.length < 6) return members.slice();
+  const xs = members.map((i) => mp.points[i].x).sort((a, b) => a - b);
+  const ys = members.map((i) => mp.points[i].y).sort((a, b) => a - b);
+  const mx = xs[xs.length >> 1], my = ys[ys.length >> 1];
+  const ranked = members.map((i) => [i, Math.hypot(mp.points[i].x - mx, mp.points[i].y - my)]).sort((a, b) => a[1] - b[1]);
+  const keep = Math.max(3, Math.ceil(ranked.length * (1 - cut)));
+  return ranked.slice(0, keep).map((e) => e[0]);
+}
+function polygonArea(poly) {
+  let a = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const p = poly[i], q = poly[(i + 1) % poly.length];
+    a += p[0] * q[1] - q[0] * p[1];
+  }
+  return Math.abs(a) / 2;
+}
+function pointInPolygon(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
 /** 外形を、中心から離れる向きに pad だけ広げる(点が縁にぎりぎり載らないように) */
 function inflateHull(hull, pad) {
   let cx = 0, cy = 0;
@@ -798,10 +839,13 @@ function buildMap(data) {
     let cx = 0, cy = 0;
     members.forEach((i) => { cx += mp.points[i].x; cy += mp.points[i].y; });
     cx /= members.length; cy /= members.length;
-    const hull = members.length >= 3 ? inflateHull(convexHull(members.map((i) => [mp.points[i].x, mp.points[i].y])), 0.06) : null;
+    // 範囲は、中心から遠く離れた少数の点(外れ値)を除いて囲む。1点のために範囲が大きく広がらないように
+    const core = coreMembers(members, 0.12);
+    const hull = core.length >= 3 ? inflateHull(convexHull(core.map((i) => [mp.points[i].x, mp.points[i].y])), 0.07) : null;
     return {
       id: id, index: index, name: names.get(id) || ('グループ' + (id + 1)), color: MAP_TAG_COLORS[id % MAP_TAG_COLORS.length],
-      members: members, cx: cx, cy: cy, hull: hull && hull.length >= 3 ? hull : null,
+      members: members, core: core, cx: cx, cy: cy, hull: hull && hull.length >= 3 ? hull : null,
+      area: hull && hull.length >= 3 ? polygonArea(hull) : 0,
     };
   });
   mp.clusterById = new Map(mp.clusters.map((c) => [c.id, c]));
@@ -824,6 +868,7 @@ function buildMap(data) {
   });
 
   mp.selected = -1;
+  mp.group = -1;
   mp.hover = -1;
   mp.match = null;
   mp.fitted = false;
@@ -831,6 +876,7 @@ function buildMap(data) {
   $('mapCount').textContent = '';
   renderMapChips();
   renderMapInfo();
+  renderGroupInfo();
 
   const have = new Set(mp.points.map((p) => p.q));
   let missing = 0;
@@ -848,6 +894,8 @@ function renderMapChips() {
     b.type = 'button';
     b.className = 'chip';
     b.dataset.color = cl.color;
+    b.dataset.index = String(cl.index);
+    b.setAttribute('aria-pressed', 'false');
     const dot = document.createElement('i');
     dot.setAttribute('aria-hidden', 'true');
     b.appendChild(dot);
@@ -855,7 +903,75 @@ function renderMapChips() {
     const n = document.createElement('small');
     n.textContent = String(cl.members.length);
     b.appendChild(n);
-    b.addEventListener('click', () => focusCluster(cl.index));
+    b.addEventListener('click', () => toggleGroup(cl.index));
+    box.appendChild(b);
+  });
+}
+
+function updateChips() {
+  document.querySelectorAll('#mapChips .chip').forEach((b) => {
+    b.setAttribute('aria-pressed', String(Number(b.dataset.index) === mp.group));
+  });
+}
+
+/** 選んだグループの語録を、中心に近い順に一覧で出す。行を押すと、図でその語録に移る */
+function renderGroupInfo() {
+  const box = $('groupInfo');
+  box.textContent = '';
+  const cl = mp.group >= 0 ? mp.clusters[mp.group] : null;
+  box.hidden = !cl;
+  updateChips();
+  if (!cl) return;
+
+  const head = document.createElement('div');
+  head.className = 'gi-head';
+  const tag = document.createElement('span');
+  tag.className = 'ctag';
+  tag.dataset.color = cl.color;
+  tag.textContent = cl.name;
+  head.appendChild(tag);
+  const count = document.createElement('span');
+  count.className = 'gi-count';
+  count.textContent = cl.members.length + ' 件';
+  head.appendChild(count);
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'gi-close';
+  close.textContent = '閉じる';
+  close.addEventListener('click', () => clearGroup(true));
+  head.appendChild(close);
+  box.appendChild(head);
+
+  const note = document.createElement('p');
+  note.className = 'gi-note';
+  note.textContent = '図の濃く囲まれた範囲が、このグループです。グループの中心に近い語録から順に並べています。';
+  box.appendChild(note);
+
+  const ordered = cl.members.slice().sort((a, b) => {
+    const pa = mp.points[a], pb = mp.points[b];
+    return Math.hypot(pa.x - cl.cx, pa.y - cl.cy) - Math.hypot(pb.x - cl.cx, pb.y - cl.cy);
+  });
+  ordered.forEach((idx) => {
+    const q = mp.points[idx];
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'nb';
+    b.dataset.idx = String(idx);
+    if (idx === mp.selected) b.classList.add('cur');
+    const text = document.createElement('span');
+    text.className = 'nb-q';
+    text.textContent = '「' + (q.q.length > 120 ? q.q.slice(0, 120) + '…' : q.q) + '」';
+    b.appendChild(text);
+    if (q.s) {
+      const who = document.createElement('span');
+      who.className = 'nb-s';
+      who.textContent = q.s;
+      b.appendChild(who);
+    }
+    b.addEventListener('click', () => {
+      selectPoint(idx, true, true);
+      $('mapStage').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
     box.appendChild(b);
   });
 }
@@ -927,30 +1043,75 @@ function fitView(indices, animate) {
   const all = !indices || indices.length === 0;
   const list = (all ? mp.points.map((_, i) => i) : indices).map((i) => mp.points[i]);
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-  list.forEach((p) => {
-    x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x);
-    y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
-  });
+  if (all && list.length >= 20) {
+    // 全体を見るときは、端の2%ずつ(遠くに離れた点)を除いて収める。1点のために図全体が小さくならないように
+    const xs = list.map((p) => p.x).sort((a, b) => a - b);
+    const ys = list.map((p) => p.y).sort((a, b) => a - b);
+    const lo = Math.floor(list.length * 0.02), hi = Math.ceil(list.length * 0.98) - 1;
+    x0 = xs[lo]; x1 = xs[hi]; y0 = ys[lo]; y1 = ys[hi];
+  } else {
+    list.forEach((p) => {
+      x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x);
+      y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
+    });
+  }
   const scale = Math.min(mp.w / Math.max(x1 - x0, 0.25), mp.h / Math.max(y1 - y0, 0.25)) * 0.8;
   if (all) mp.fit = scale;
   moveView((x0 + x1) / 2, (y0 + y1) / 2, scale, animate);
 }
 
-function focusCluster(index) {
+/** グループを選ぶ。範囲を図に濃く出し、そこへ視点を寄せ、語録の一覧を出す */
+function selectGroup(index) {
   const cl = mp.clusters[index];
   if (!cl) return;
+  mp.group = index;
   selectPoint(-1);
-  fitView(cl.members, true);
+  renderGroupInfo();
+  // 範囲の外形がすべて収まるように寄せる(範囲が画面の端で切れないように)
+  const pts = cl.hull || (cl.core.length ? cl.core : cl.members).map((i) => [mp.points[i].x, mp.points[i].y]);
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  pts.forEach((q) => {
+    x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]);
+    y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]);
+  });
+  const scale = Math.min(mp.w / Math.max(x1 - x0, 0.25), mp.h / Math.max(y1 - y0, 0.25)) * 0.85;
+  moveView((x0 + x1) / 2, (y0 + y1) / 2, scale, true);
+  requestDraw();
 }
 
-function selectPoint(idx, pan) {
+/** グループの選択を外す。zoomOut が true なら、全体が見える位置に戻す */
+function clearGroup(zoomOut) {
+  mp.group = -1;
+  renderGroupInfo();
+  if (zoomOut) fitView(null, true);
+  requestDraw();
+}
+
+/** 同じグループをもう一度押すと、選択を外して全体に戻る */
+function toggleGroup(index) {
+  if (mp.group === index) clearGroup(true); else selectGroup(index);
+}
+
+/** 画面上の位置にある範囲のグループ(重なっていれば、小さい方)。無ければ -1 */
+function groupAt(px, py) {
+  const wx = (px - mp.w / 2) / mp.view.scale + mp.view.cx;
+  const wy = (py - mp.h / 2) / mp.view.scale + mp.view.cy;
+  let best = -1, bestArea = Infinity;
+  mp.clusters.forEach((cl) => {
+    if (cl.hull && cl.area < bestArea && pointInPolygon(wx, wy, cl.hull)) { best = cl.index; bestArea = cl.area; }
+  });
+  return best;
+}
+
+function selectPoint(idx, pan, quiet) {
   mp.selected = idx;
   renderMapInfo();
+  document.querySelectorAll('#groupInfo .nb').forEach((b) => b.classList.toggle('cur', Number(b.dataset.idx) === idx));
   if (idx >= 0 && pan) {
     const p = mp.points[idx];
     moveView(p.x, p.y, Math.max(mp.view.scale, mp.fit * 2.5), true);
   }
-  if (idx >= 0) $('mapInfo').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  if (idx >= 0 && !quiet) $('mapInfo').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   requestDraw();
 }
 
@@ -990,9 +1151,16 @@ function pointAt(px, py) {
 function handleTap(x, y) {
   for (let i = 0; i < mp.labels.length; i++) {
     const l = mp.labels[i];
-    if (x >= l.x && x <= l.x + l.w && y >= l.y && y <= l.y + l.h) { focusCluster(l.index); return; }
+    if (x >= l.x && x <= l.x + l.w && y >= l.y && y <= l.y + l.h) { toggleGroup(l.index); return; }
   }
-  selectPoint(pointAt(x, y));
+  const hit = pointAt(x, y);
+  if (hit >= 0) { selectPoint(hit); return; }
+
+  // 点でも名前でもない所は、範囲の中ならそのグループを選び、範囲の外なら選択を外す
+  const g = groupAt(x, y);
+  if (g >= 0 && g !== mp.group) { selectGroup(g); return; }
+  if (mp.selected >= 0) { selectPoint(-1); return; }
+  if (g < 0 && mp.group >= 0) clearGroup(false);
 }
 
 function resizeMap(refit) {
@@ -1087,7 +1255,7 @@ function bindMap() {
 
   $('zoomIn').addEventListener('click', () => zoomAt(mp.w / 2, mp.h / 2, 1.5));
   $('zoomOut').addEventListener('click', () => zoomAt(mp.w / 2, mp.h / 2, 1 / 1.5));
-  $('zoomFit').addEventListener('click', () => { selectPoint(-1); fitView(null, true); });
+  $('zoomFit').addEventListener('click', () => { selectPoint(-1); mp.group = -1; renderGroupInfo(); fitView(null, true); });
 
   let mapSearchTimer = null;
   $('mq').addEventListener('input', (e) => {
@@ -1166,24 +1334,28 @@ function drawMap() {
   ctx.fillStyle = c.surface;
   ctx.fillRect(0, 0, w, h);
 
-  // グループの範囲(点線)
+  // グループの範囲。ふだんはグループの色で薄く塗って点線で囲み、選んだグループだけ濃く塗って実線で囲む
+  const group = mp.group >= 0 ? mp.clusters[mp.group] : null;
   mp.clusters.forEach((cl) => {
+    const chosen = group === cl;
     ctx.beginPath();
     if (cl.hull) {
-      cl.hull.forEach((q, i) => {
-        if (i === 0) ctx.moveTo(toScreenX(q[0]), toScreenY(q[1])); else ctx.lineTo(toScreenX(q[0]), toScreenY(q[1]));
-      });
+      // 角を丸めた外形(各辺の中点を結び、頂点を制御点にする)
+      const hs = cl.hull.map((q) => [toScreenX(q[0]), toScreenY(q[1])]);
+      const m = hs.map((q, i) => { const r = hs[(i + 1) % hs.length]; return [(q[0] + r[0]) / 2, (q[1] + r[1]) / 2]; });
+      ctx.moveTo(m[m.length - 1][0], m[m.length - 1][1]);
+      hs.forEach((q, i) => ctx.quadraticCurveTo(q[0], q[1], m[i][0], m[i][1]));
       ctx.closePath();
     } else {
       ctx.arc(toScreenX(cl.cx), toScreenY(cl.cy), 0.09 * v.scale, 0, Math.PI * 2);
     }
-    ctx.globalAlpha = sel ? 0.04 : 0.07;
-    ctx.fillStyle = c.ink;
+    ctx.globalAlpha = chosen ? 0.24 : (group || sel ? 0.03 : 0.1);
+    ctx.fillStyle = mapFill(cl.color);
     ctx.fill();
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = chosen ? 1 : (group || sel ? 0.2 : 0.55);
     ctx.strokeStyle = c.ink;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6, 5]);
+    ctx.lineWidth = chosen ? 3.5 : 2;
+    ctx.setLineDash(chosen ? [] : [6, 5]);
     ctx.stroke();
     ctx.setLineDash([]);
   });
@@ -1222,6 +1394,7 @@ function drawMap() {
     if (X < -24 || X > w + 24 || Y < -24 || Y > h + 24) return;
     let alpha = 1;
     if (sel && i !== mp.selected && !near.has(i)) alpha = 0.22;
+    else if (!sel && group && p.c !== group.id) alpha = 0.2;
     if (mp.match && !mp.match.has(i)) alpha = Math.min(alpha, 0.14);
     const style = speakerStyle(p.s);
     ctx.globalAlpha = alpha;
@@ -1245,12 +1418,14 @@ function drawMap() {
   ctx.font = '700 12px ' + mp.font;
   ctx.textBaseline = 'middle';
   mp.clusters.forEach((cl) => {
-    const X = toScreenX(cl.cx), Y = toScreenY(cl.cy);
     const tw = ctx.measureText(cl.name).width;
     const bw = tw + 14, bh = 22;
+    // 名前は範囲の上辺に置く(点を隠さないように)。範囲が無い小さなグループは中心に置く
+    const X = toScreenX(cl.cx);
+    const Y = cl.hull ? toScreenY(Math.min.apply(null, cl.hull.map((q) => q[1]))) - bh / 2 - 2 : toScreenY(cl.cy);
     const bx = clamp(X - bw / 2, 4, Math.max(4, w - bw - 4)), by = clamp(Y - bh / 2, 4, Math.max(4, h - bh - 4));
     if (X < -bw || X > w + bw || Y < -bh || Y > h + bh) return;
-    ctx.globalAlpha = sel && sel.c !== cl.id ? 0.5 : 1;
+    ctx.globalAlpha = (sel && sel.c !== cl.id) || (!sel && group && group !== cl) ? 0.45 : 1;
     ctx.fillStyle = mapFill(cl.color);
     ctx.fillRect(bx, by, bw, bh);
     ctx.lineWidth = 2;
