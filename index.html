@@ -22,7 +22,9 @@
     --rule: 3px;
     --title: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
     --geo: "Jost", "Futura", "Century Gothic", "Hiragino Sans", sans-serif;
-    --body: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", Meiryo, sans-serif;
+    /* 本文の字体に "Noto Sans JP" を入れない。見出し用に「語録」の2文字だけ極太で読み込んでいるため、
+       本文にも入れると、本文中の「語」「録」だけがその極太の字体で表示されてしまう */
+    --body: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic UI", Meiryo, sans-serif;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
@@ -228,6 +230,50 @@
   .nb-q { display: block; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
   .nb-s { display: block; margin-top: 2px; font-size: 12px; color: var(--sub); }
   .map-foot { margin: 14px 0 28px; font-size: 12px; color: var(--sub); }
+  .who-bar {
+    display: flex; align-items: center; gap: 10px; margin: 10px 0 0; padding: 6px 10px;
+    background: var(--yellow); color: #000; border: 2px solid var(--ink); font-size: 13px; font-weight: 700;
+  }
+  .who-bar button {
+    margin-left: auto; padding: 1px 10px; background: var(--surface); color: var(--ink);
+    border: 2px solid var(--ink); border-radius: 0; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+
+  /* ---------- 傾向 ---------- */
+  .trait-note { color: var(--sub); text-align: center; }
+  .trait-note:not(:empty) { padding: 44px 8px; }
+  .trait-note strong { display: block; color: var(--ink); font-size: 17px; margin-bottom: 6px; }
+  .trait-note button { margin-top: 14px; padding: 8px 16px; background: var(--ink); color: var(--paper); border: 0; font-weight: 700; cursor: pointer; }
+  .trait-lead { margin: 16px 0 4px; font-size: 12.5px; color: var(--sub); }
+  .trait-h { margin: 22px 0 8px; font-size: 14px; font-weight: 700; letter-spacing: 0.06em; }
+  .pair {
+    display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; padding: 7px 12px;
+    background: var(--surface); border: 2px solid var(--ink); font-size: 14px;
+  }
+  .pair b { font-weight: 700; }
+  .pair .x { color: var(--sub); }
+  .pair .v { margin-left: auto; font-family: var(--geo); font-size: 12.5px; color: var(--sub); white-space: nowrap; }
+  .tc { background: var(--surface); border: var(--rule) solid var(--ink); margin: 0 0 14px; padding: 14px 16px 12px; }
+  .tc-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 4px; }
+  .tc-name { margin: 0; font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+  .tc-n { font-size: 12.5px; color: var(--sub); }
+  .tc-line { margin: 10px 0 0; font-size: 13.5px; }
+  .tc-line small { color: var(--sub); }
+  .tc-label { margin: 12px 0 4px; font-size: 12px; font-weight: 700; color: var(--sub); letter-spacing: 0.06em; }
+  .bar-row { display: grid; grid-template-columns: minmax(0, 9em) 1fr; align-items: center; gap: 8px; margin: 0 0 5px; font-size: 12.5px; }
+  .bar-row .ctag { margin: 0; justify-self: start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar { position: relative; height: 16px; background: var(--paper); border: 2px solid var(--ink); }
+  .bar > i { position: absolute; left: 0; top: 0; bottom: 0; }
+  .bar > span { position: absolute; left: 6px; top: -1px; font-family: var(--geo); font-size: 11.5px; font-weight: 700; line-height: 16px; mix-blend-mode: normal; color: var(--ink); text-shadow: 0 0 3px var(--surface), 0 0 3px var(--surface); }
+  .tq { margin: 0 0 5px; padding: 6px 10px; background: var(--paper); border-left: 6px solid var(--ink); font-size: 13.5px; line-height: 1.6; overflow-wrap: anywhere; }
+  .tq.odd { border-left-color: var(--red); }
+  .tc-acts { display: flex; gap: 8px; margin: 12px 0 0; }
+  .tc-acts button {
+    padding: 4px 12px; background: var(--surface); color: var(--ink);
+    border: 2px solid var(--ink); border-radius: 0; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  .tc-acts button:first-child { background: var(--ink); color: var(--paper); }
+  .trait-skip { margin: 4px 0 28px; font-size: 12px; color: var(--sub); }
 
   /* ---------- 起動アニメーション ---------- */
   #intro {
@@ -313,6 +359,7 @@
     <nav class="tabs" role="tablist" aria-label="表示の切り替え">
       <button class="tab" type="button" role="tab" data-tab="list" aria-selected="true">一覧</button>
       <button class="tab" type="button" role="tab" data-tab="map" aria-selected="false">相関図</button>
+      <button class="tab" type="button" role="tab" data-tab="trait" aria-selected="false">傾向</button>
     </nav>
 
     <div id="listView">
@@ -361,10 +408,16 @@
           <button id="zoomFit" type="button" aria-label="全体を見る">□</button>
         </div>
       </div>
+      <div class="who-bar" id="whoBar" hidden></div>
       <div class="chips" id="mapChips"></div>
       <div class="map-info" id="mapInfo" hidden></div>
       <div class="group-info" id="groupInfo" hidden></div>
       <div class="map-foot" id="mapFoot"></div>
+    </div>
+
+    <div id="traitView" hidden>
+      <div class="trait-note" id="traitNote"></div>
+      <div id="traitBody"></div>
     </div>
   </div>
 
@@ -664,7 +717,7 @@ const mp = {
   canvas: null, ctx: null, w: 0, h: 0, dpr: 1,
   points: [], clusters: [], clusterById: new Map(), edges: [], quoteByText: new Map(),
   view: { cx: 0, cy: 0, scale: 1 }, fit: 1, fitted: false,
-  selected: -1, group: -1, hover: -1, match: null, labels: [],
+  selected: -1, group: -1, who: '', memberKeys: null, hover: -1, match: null, labels: [],
   colors: null, font: '', drawQueued: false, tween: null,
 };
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
@@ -683,13 +736,273 @@ function mapOnColor(name) {
   return name === 'yellow' ? '#000000' : (name === 'black' ? mp.colors.paper : '#ffffff');
 }
 
+/* ---------- 傾向(メンバーごとの語録の特徴) ---------- */
+const TRAIT_MIN = 5;   // この件数に満たない人は、偏りが読み取れないので傾向を出さない
+
+/** 発話者名の照合用の鍵(空白・全角半角・大文字小文字の違いをそろえる) */
+function speakerKey(s) {
+  return String(s === null || s === undefined ? '' : s).normalize('NFKC').toLowerCase().replace(/\s+/g, '');
+}
+
+/**
+ * 相関図のデータ(位置・グループ・近い語録)だけから、発話者ごとの特徴を計算する。サーバーでの計算は要らない。
+ *   groups   : その人の語録がどのグループに多いか(全体の割合と比べた倍率つき)
+ *   spread   : 語録の広がり(その人の語録が図の上でどれだけ散らばっているか。全体の散らばりを1とする)
+ *   typical  : その人の語録の中心に近い語録(この人らしい)。odd は中心から最も遠い語録
+ *   partners : 語録の隣に並ぶ相手(近さ = 隣に並ぶ割合 ÷ 偶然の割合。1より大きいほど近い)
+ */
+function computeTraits() {
+  const pts = mp.points, N = pts.length;
+  const overall = new Map();
+  let gx = 0, gy = 0;
+  pts.forEach((p) => { overall.set(p.c, (overall.get(p.c) || 0) + 1); gx += p.x; gy += p.y; });
+  gx /= N; gy /= N;
+  const gSpread = pts.reduce((a, p) => a + Math.hypot(p.x - gx, p.y - gy), 0) / N || 1;
+
+  const byKey = new Map();
+  pts.forEach((p, i) => {
+    if (!p.k) return;
+    if (!byKey.has(p.k)) byKey.set(p.k, { key: p.k, idx: [], names: new Map() });
+    const e = byKey.get(p.k);
+    e.idx.push(i);
+    e.names.set(p.s, (e.names.get(p.s) || 0) + 1);
+  });
+
+  const people = [], small = [], outsiders = [];
+  byKey.forEach((e) => {
+    e.name = Array.from(e.names.entries()).sort((a, b) => b[1] - a[1])[0][0];
+    e.n = e.idx.length;
+    if (mp.memberKeys && !mp.memberKeys.has(e.key)) outsiders.push(e);
+    else if (e.n < TRAIT_MIN) small.push(e);
+    else people.push(e);
+  });
+  people.sort((a, b) => b.n - a.n);
+
+  people.forEach((e) => {
+    let cx = 0, cy = 0;
+    e.idx.forEach((i) => { cx += pts[i].x; cy += pts[i].y; });
+    cx /= e.n; cy /= e.n;
+    e.spread = e.idx.reduce((a, i) => a + Math.hypot(pts[i].x - cx, pts[i].y - cy), 0) / e.n / gSpread;
+
+    const cnt = new Map();
+    e.idx.forEach((i) => cnt.set(pts[i].c, (cnt.get(pts[i].c) || 0) + 1));
+    e.groups = Array.from(cnt.entries()).map(([c, k]) => {
+      const all = overall.get(c) / N;
+      return { c: c, cnt: k, share: k / e.n, all: all, lift: (k / e.n) / all };
+    }).sort((a, b) => b.cnt - a.cnt);
+
+    const ranked = e.idx.map((i) => [i, Math.hypot(pts[i].x - cx, pts[i].y - cy)]).sort((a, b) => a[1] - b[1]);
+    const seen = new Set();
+    e.typical = [];
+    for (let r = 0; r < ranked.length && e.typical.length < 3; r++) {
+      const t = pts[ranked[r][0]].q;
+      if (!seen.has(t)) { seen.add(t); e.typical.push(ranked[r][0]); }
+    }
+    e.odd = -1;
+    if (e.n >= 8) {
+      for (let r = ranked.length - 1; r >= 0; r--) {
+        if (!seen.has(pts[ranked[r][0]].q)) { e.odd = ranked[r][0]; break; }
+      }
+    }
+  });
+
+  // 広がりの目安は、メンバーの中での順位(4人以上のとき)。少ないときは全体との比
+  const order = people.map((e) => e.spread).sort((a, b) => a - b);
+  people.forEach((e) => {
+    if (people.length >= 4) {
+      const r = order.indexOf(e.spread);
+      e.spreadLabel = r < people.length / 3 ? '話題が一か所に集まっている'
+        : (r >= people.length * 2 / 3 ? '話題があちこちに散らばっている' : '話題の広がりはふつう');
+    } else {
+      e.spreadLabel = e.spread < 0.85 ? '話題が一か所に集まっている' : (e.spread > 1.1 ? '話題があちこちに散らばっている' : '話題の広がりはふつう');
+    }
+  });
+
+  // 近さ: a の語録の「近い語録」のうち b のものが占める割合を、偶然に当たる割合で割る。a→b と b→a の幾何平均
+  const P = people.length;
+  const slot = new Map(people.map((e, j) => [e.key, j]));
+  const flow = people.map(() => new Float64Array(P));
+  const flowAll = new Float64Array(P);
+  people.forEach((e, a) => e.idx.forEach((i) => (pts[i].nb || []).forEach((nb) => {
+    const other = pts[nb[0]];
+    if (!other || other.k === e.key) return;
+    const w = Math.max(nb[1], 0.01);
+    flowAll[a] += w;
+    const b = slot.get(other.k);
+    if (b !== undefined) flow[a][b] += w;
+  })));
+  const ALPHA = 1.5; // 少ない件数で極端な値にならないための補正
+  const lift = (a, b) => {
+    const expect = people[b].n / (N - people[a].n);
+    return ((flow[a][b] + ALPHA * expect) / (flowAll[a] + ALPHA)) / expect;
+  };
+  const pairs = [];
+  for (let a = 0; a < P; a++) {
+    for (let b = a + 1; b < P; b++) pairs.push({ a: a, b: b, s: Math.sqrt(lift(a, b) * lift(b, a)) });
+  }
+  people.forEach((e, a) => {
+    e.partners = pairs.filter((p) => p.a === a || p.b === a)
+      .map((p) => ({ who: people[p.a === a ? p.b : p.a], s: p.s }))
+      .sort((x, y) => y.s - x.s);
+  });
+  return { people: people, small: small, outsiders: outsiders, pairs: pairs, total: N };
+}
+
+function mk(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+const cutText = (s, n) => (s.length > n ? s.slice(0, n) + '…' : s);
+const pct = (x) => Math.round(x * 100) + '%';
+const fmtLift = (s) => (s < 0.1 ? '0.1 倍未満' : s.toFixed(1) + ' 倍');
+
+function renderTraits() {
+  const body = $('traitBody');
+  body.textContent = '';
+  if (!mp.ready || mp.points.length === 0) return;
+  if (!mp.colors) readMapColors();
+  const t = computeTraits();
+
+  body.appendChild(mk('p', 'trait-lead', mp.memberKeys
+    ? 'グループのメンバー ' + t.people.length + ' 人の語録を、相関図のデータから集計しています(語録 ' + t.total + ' 件のうち、' + t.people.reduce((a, e) => a + e.n, 0) + ' 件)。'
+    : 'メンバーの名簿が取れなかったので、発話者として登録されている全員を集計しています。'));
+  if (t.people.length === 0) {
+    body.appendChild(mk('p', 'trait-skip', TRAIT_MIN + ' 件以上の語録がある発話者が、まだいません。'));
+    return;
+  }
+
+  if (t.people.length >= 3) {
+    const sorted = t.pairs.slice().sort((x, y) => y.s - x.s);
+    const near = sorted.filter((p) => p.s > 1).slice(0, 3);
+    const far = sorted.slice().reverse().filter((p) => p.s < 1).slice(0, 2);
+    const section = (title, list) => {
+      if (list.length === 0) return;
+      body.appendChild(mk('h2', 'trait-h', title));
+      list.forEach((p) => {
+        const row = mk('div', 'pair');
+        row.appendChild(mk('b', '', t.people[p.a].name));
+        row.appendChild(mk('span', 'x', '×'));
+        row.appendChild(mk('b', '', t.people[p.b].name));
+        row.appendChild(mk('span', 'v', fmtLift(p.s)));
+        body.appendChild(row);
+      });
+    };
+    section('語録が近い組', near);
+    section('語録が遠い組', far);
+    body.appendChild(mk('p', 'trait-lead', '倍率は、片方の語録の隣に、もう片方の語録が並ぶ割合を、偶然に並ぶ割合で割った値です。1より大きいほど近く、1より小さいほど離れています。'));
+  }
+
+  body.appendChild(mk('h2', 'trait-h', 'メンバーごとの傾向'));
+  t.people.forEach((e) => {
+    const card = mk('section', 'tc');
+    const head = mk('div', 'tc-head');
+    head.appendChild(mk('h3', 'tc-name', e.name));
+    head.appendChild(mk('span', 'tc-n', e.n + ' 件(全体の ' + pct(e.n / t.total) + ')'));
+    card.appendChild(head);
+
+    card.appendChild(mk('div', 'tc-label', 'よく出るグループ'));
+    e.groups.slice(0, 3).forEach((g) => {
+      const cl = mp.clusterById.get(g.c);
+      const row = mk('div', 'bar-row');
+      const tag = mk('span', 'ctag', cl ? cl.name : 'グループ' + (g.c + 1));
+      tag.dataset.color = cl ? cl.color : 'black';
+      row.appendChild(tag);
+      const bar = mk('div', 'bar');
+      const fill = mk('i');
+      fill.style.width = Math.max(2, g.share * 100) + '%';
+      fill.style.background = mapFill(cl ? cl.color : 'black');
+      fill.style.opacity = '0.55';
+      bar.appendChild(fill);
+      bar.appendChild(mk('span', '', pct(g.share) + '(全体 ' + pct(g.all) + ')' + (g.lift >= 1.5 && g.cnt >= 3 ? ' 多め' : '')));
+      row.appendChild(bar);
+      card.appendChild(row);
+    });
+
+    card.appendChild(mk('p', 'tc-line', e.spreadLabel));
+    const partners = e.partners.filter((p) => p.s > 1.15).slice(0, 2);
+    const line = mk('p', 'tc-line');
+    line.appendChild(document.createTextNode(partners.length
+      ? '語録が近い人: ' + partners.map((p) => p.who.name + '(' + fmtLift(p.s) + ')').join('、')
+      : 'はっきり近い人はいません'));
+    card.appendChild(line);
+
+    card.appendChild(mk('div', 'tc-label', 'この人らしい語録(この人の語録の中心に近いもの)'));
+    e.typical.forEach((i) => card.appendChild(mk('p', 'tq', '「' + cutText(mp.points[i].q, 120) + '」')));
+    if (e.odd >= 0) {
+      card.appendChild(mk('div', 'tc-label', 'この人らしくない一言(中心から最も遠いもの)'));
+      card.appendChild(mk('p', 'tq odd', '「' + cutText(mp.points[e.odd].q, 120) + '」'));
+    }
+
+    const acts = mk('div', 'tc-acts');
+    const toMap = mk('button', '', '相関図で見る');
+    toMap.type = 'button';
+    toMap.addEventListener('click', () => showWho(e));
+    const toList = mk('button', '', '一覧で見る');
+    toList.type = 'button';
+    toList.addEventListener('click', () => setSpeaker(e.name));
+    acts.appendChild(toMap);
+    acts.appendChild(toList);
+    card.appendChild(acts);
+    body.appendChild(card);
+  });
+
+  const notes = [];
+  if (t.small.length) notes.push('語録が ' + TRAIT_MIN + ' 件に満たない人は、偏りが読み取れないので出していません(' + t.small.map((e) => e.name).join('、') + ')。');
+  if (t.outsiders.length) notes.push('メンバー以外の発話者は含めていません(' + t.outsiders.slice(0, 6).map((e) => e.name).join('、') + (t.outsiders.length > 6 ? ' など' : '') + ')。');
+  if (notes.length) body.appendChild(mk('p', 'trait-skip', notes.join('')));
+}
+
+function openTraits() {
+  readMapColors();
+  if (mp.ready) renderTraits();
+  else if (!mp.loading) loadMap();
+}
+
+/** 傾向のカードから相関図へ移り、その人の語録だけを濃く表示する */
+function showWho(e) {
+  mp.who = e.key;
+  mp.whoName = e.name;
+  mp.group = -1;
+  showTab('map');
+  renderGroupInfo();
+  renderWhoBar();
+  selectPoint(-1);
+  fitView(e.idx, true);
+  requestDraw();
+}
+
+function clearWho() {
+  mp.who = '';
+  mp.whoName = '';
+  renderWhoBar();
+  requestDraw();
+}
+
+function renderWhoBar() {
+  const box = $('whoBar');
+  box.textContent = '';
+  box.hidden = !mp.who;
+  if (!mp.who) return;
+  const n = mp.points.filter((p) => p.k === mp.who).length;
+  box.appendChild(mk('span', '', mp.whoName + ' の語録 ' + n + ' 件を濃く表示中'));
+  const b = mk('button', '', '解除');
+  b.type = 'button';
+  b.addEventListener('click', clearWho);
+  box.appendChild(b);
+}
+
 /* ---------- 表示の切り替え ---------- */
 function showTab(name) {
   const toMap = name === 'map';
-  $('listView').hidden = toMap;
+  const toTrait = name === 'trait';
+  $('listView').hidden = toMap || toTrait;
   $('mapView').hidden = !toMap;
+  $('traitView').hidden = !toTrait;
   document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
   if (toMap) openMap();
+  if (toTrait) openTraits();
 }
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
 
@@ -702,8 +1015,7 @@ function openMap() {
 }
 
 /* ---------- 読み込み ---------- */
-function setMapNote(title, detail, retry) {
-  const box = $('mapNote');
+function fillNote(box, title, detail, retry) {
   box.textContent = '';
   if (!title) return;
   const strong = document.createElement('strong');
@@ -718,6 +1030,11 @@ function setMapNote(title, detail, retry) {
     b.addEventListener('click', loadMap);
     box.appendChild(b);
   }
+}
+/** 読み込みの状況を、相関図と傾向の両方の画面に出す */
+function setMapNote(title, detail, retry) {
+  fillNote($('mapNote'), title, detail, retry);
+  fillNote($('traitNote'), title, detail, retry);
 }
 
 function fetchMapData() {
@@ -750,6 +1067,7 @@ function loadMap() {
       mp.ready = true;
       setMapNote('');
       resizeMap(true);
+      renderTraits();
     })
     .catch((err) => {
       mp.loading = false;
@@ -867,8 +1185,14 @@ function buildMap(data) {
     if (!mp.quoteByText.has(key)) mp.quoteByText.set(key, item);
   });
 
+  // 発話者の名前は、空白・全角半角・大文字小文字の違いをそろえた鍵で突き合わせる
+  mp.points.forEach((p) => { p.k = speakerKey(p.s); });
+  mp.memberKeys = Array.isArray(data.members) && data.members.length
+    ? new Set(data.members.map(speakerKey).filter((k) => k)) : null;
+
   mp.selected = -1;
   mp.group = -1;
+  mp.who = '';
   mp.hover = -1;
   mp.match = null;
   mp.fitted = false;
@@ -877,6 +1201,7 @@ function buildMap(data) {
   renderMapChips();
   renderMapInfo();
   renderGroupInfo();
+  renderWhoBar();
 
   const have = new Set(mp.points.map((p) => p.q));
   let missing = 0;
@@ -1394,7 +1719,7 @@ function drawMap() {
     if (X < -24 || X > w + 24 || Y < -24 || Y > h + 24) return;
     let alpha = 1;
     if (sel && i !== mp.selected && !near.has(i)) alpha = 0.22;
-    else if (!sel && group && p.c !== group.id) alpha = 0.2;
+    else if (!sel && ((group && p.c !== group.id) || (mp.who && p.k !== mp.who))) alpha = 0.2;
     if (mp.match && !mp.match.has(i)) alpha = Math.min(alpha, 0.14);
     const style = speakerStyle(p.s);
     ctx.globalAlpha = alpha;
@@ -1472,6 +1797,7 @@ function demoMap() {
     updated: 'お試し',
     points: points,
     clusters: names.map((name, c) => ({ c: c, name: name, size: points.filter((p) => p.c === c).length })),
+    members: Array.from(new Set(points.map((p) => p.s).filter((s) => s))),
   };
 }
 
